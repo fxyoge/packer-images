@@ -19,7 +19,7 @@ jobs:
       - uses: hashicorp/setup-packer@v2.0.0
         with:
           # renovate: datasource=custom.hashicorp depName=packer
-          version: "1.9.3"
+          version: "1.9.4"
       - run: packer init "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
       - run: packer validate "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
         env:
