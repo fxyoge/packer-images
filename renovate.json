@@ -6,7 +6,7 @@
   "reviewers": ["fxyoge"],
   "regexManagers": [
     {
-      "fileMatch": ["\\.yml$"],
+      "fileMatch": ["\\.ya?ml$"],
       "datasourceTemplate": "custom.hashicorp",
       "matchStrings": [
         "#\\s*renovate:\\s*(datasource=(?<datasource>.*?) )?depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\s*\\w*:\\s*(?<currentValue>.*)\\s"
