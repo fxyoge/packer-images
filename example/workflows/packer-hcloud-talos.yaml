@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: packer-hcloud-talos
+
+on:
+  workflow_dispatch:
+
+env:
+  TEMPLATES_DIR: "./packer-images/templates"
+
+jobs:
+  packer-hcloud-talos:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        talos-version: ["v1.5.1"]
+        arch: ["amd64", "arm64"]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - uses: hashicorp/setup-packer@v2.0.0
+        with:
+          # renovate: datasource=custom.hashicorp depName=packer
+          version: "1.9.4"
+      - run: packer init "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
+      - run: |
+          packer validate \
+            -var "talos_version=${{ matrix.talos-version }}" \
+            -var "arch=${{ matrix.arch }}" \
+            "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+      - run: |
+          packer build \
+            -var "talos_version=${{ matrix.talos-version }}" \
+            -var "arch=${{ matrix.arch }}" \
+            "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
