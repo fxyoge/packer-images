@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
 
 env:
-  TEMPLATES_DIR: "./packers/templates"
+  TEMPLATES_DIR: "./packer-images/templates"
 
 jobs:
   packer-hcloud-talos:
@@ -18,7 +18,7 @@ jobs:
           submodules: "true"
       - uses: hashicorp/setup-packer@v2.0.0
         with:
-          # renovate: depName=packer
+          # renovate: datasource=custom.hashicorp depName=packer
           version: "1.9.3"
       - run: packer init "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
       - run: packer validate "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
