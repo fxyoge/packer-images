@@ -14,26 +14,41 @@ jobs:
       matrix:
         talos-version: ["v1.5.1"]
         arch: ["amd64", "arm64"]
+        features: ["drbd tailscale"]
+      fail-fast: false
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
           submodules: "true"
-      - uses: hashicorp/setup-packer@v2.0.0
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@v2.0.0
         with:
           # renovate: datasource=custom.hashicorp depName=packer
           version: "1.9.4"
-      - run: packer init "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
-      - run: |
-          packer validate \
-            -var "talos_version=${{ matrix.talos-version }}" \
-            -var "arch=${{ matrix.arch }}" \
-            "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
-        env:
-          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
-      - run: |
+
+      - name: Init Packer template
+        run: packer init "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
+
+      - name: Validate Packer template
+        run: packer validate -syntax-only "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
+
+      - name: Build Talos ISO
+        run: |
+          docker run --rm -t --privileged -v ${{ github.workspace }}/artifacts:/out -v /dev:/dev ghcr.io/siderolabs/imager:${{ matrix.talos-version }} hcloud \
+            --arch ${{ matrix.arch }} \
+            ${{ contains(matrix.features, 'drbd')      && '--system-extension-image ghcr.io/siderolabs/drbd:9.2.4-v1.6.0-alpha.0-3-g0cba1b6' }} \
+            ${{ contains(matrix.features, 'tailscale') && '--system-extension-image ghcr.io/siderolabs/tailscale:1.46.1' }}
+      
+      - name: Build Packer image
+        run: |
           packer build \
             -var "talos_version=${{ matrix.talos-version }}" \
             -var "arch=${{ matrix.arch }}" \
+            -var "image=${{ github.workspace }}/artifacts/hcloud-${{ matrix.arch }}.raw.xz" \
+            -var "features=${{ matrix.features }}" \
             "${{ env.TEMPLATES_DIR }}/hcloud_talos.pkr.hcl"
         env:
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}

@@ -15,11 +15,29 @@ variable "arch" {
   type = string
 }
 
+variable "image" {
+  type = string
+}
+
+variable "features" {
+  type = string
+}
+
 locals {
-  image = "https://github.com/siderolabs/talos/releases/download/${var.talos_version}/hcloud-${var.arch}.raw.xz"
-  name  = join("-", concat(
-    ["talos", var.talos_version, var.arch]
+  features = var.features == "" ? [] : sort(split(" ", var.features))
+
+  name = join("-", concat(
+    ["talos", var.talos_version, var.arch],
+    local.features
   ))
+
+  labels = merge({
+    os      = "talos",
+    version = "${var.talos_version}",
+    arch    = "${var.arch}"
+  }, {
+    for key in local.features : key => "enabled"
+  })
 }
 
 source "hcloud" "talos" {
@@ -29,20 +47,18 @@ source "hcloud" "talos" {
   server_type  = var.arch == "amd64" ? "cpx11" : "cax11"
   ssh_username = "root"
 
-  snapshot_name = local.name
-  snapshot_labels = {
-    os      = "talos",
-    version = "${var.talos_version}",
-    arch    = "${var.arch}"
-  }
+  snapshot_name   = local.name
+  snapshot_labels = local.labels
 }
 
 build {
   sources = ["source.hcloud.talos"]
+  provisioner "file" {
+    source      = var.image
+    destination = "/tmp/talos.raw.xz"
+  }
   provisioner "shell" {
     inline = [
-      "apt-get install -y wget",
-      "wget -O /tmp/talos.raw.xz ${local.image}",
       "xz -d -c /tmp/talos.raw.xz | dd of=/dev/sda && sync",
     ]
   }
